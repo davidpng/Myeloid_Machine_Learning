@@ -3,7 +3,7 @@
 Created on Wed Sep 10 12:15:34 2014
 
 @author: ngdavid
-"""e
+"""
 from HEADER_Find_FCS_files import Find_FCS_Files
 from HEADER_Import_FCS import import_FCS_file
 from HEADER_ND_Binning import ND_Binning
@@ -15,11 +15,9 @@ Dir = "/home/ngdavid/Desktop/Ubuntu_Dropbox/Myeloid_Data/Myeloid"
 
 File_list = '/home/ngdavid/Desktop/Ubuntu_Dropbox/Myeloid_Data/Myeloid/file_list.txt'
 
-comp_file={'Myeloid 1': '/home/ngdavid/Desktop/Ubuntu_Dropbox/Comp_Libs/M1_Comp_Lib_LSRA.txt',
-           'Myeloid 2': '/home/ngdavid/Desktop/Ubuntu_Dropbox/Comp_Libs/M2_Comp_Lib_LSRA.txt',
-           'Myeloid 4': '/home/ngdavid/Desktop/Ubuntu_Dropbox/Comp_Libs/M4_Comp_Lib_LSRA.txt',
-           'T Cells': '/home/ngdavid/Desktop/Ubuntu_Dropbox/Comp_Libs/M1_Comp_Lib_LSRA.txt'}
-#note, CD19-PE-TR was changed to CD19 PE-CF594 at some point}
+comp_file={'H0152':'/home/ngdavid/Desktop/Ubuntu_Dropbox/Comp_Libs/Spectral_Overlap_Lib_LSRA.txt',
+           '2':'/home/ngdavid/Desktop/Ubuntu_Dropbox/Comp_Libs/Spectral_Overlap_Lib_LSRB.txt'}
+
 parameters = {
     'Myeloid 1': ['FSC-A', 'SSC-H', 'CD15 FITC', 'CD33 PE', 'CD19 PE-TR',
                   'CD117 PE-Cy5','CD13 PE-Cy7', 'HLA-DR PB', 'CD38 A594', 

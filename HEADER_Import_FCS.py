@@ -14,19 +14,25 @@ from matplotlib.path import Path
 class import_FCS_file(object):
     """
     This class will load and compensate an FCS file given an FCS filename and 
-    spillover matrix (in CSV format)
+    spillover library (in CSV format)
     Stores a pandas dataframe in data
     Also stores the export_time, cytometer_name, cytometer_num, comp_matrix and tube_name
+    
+    rescale_lim - tuple (max,min) for the channels
+    limits - applies rescale limits
+    strict - switch between strict mode (if channel parameter is undefined, then 
+             error out) and (if channel parameter is undefined, goto default FL__)
+    
     """
     
     def __init__(self,filename,compensation_file,saturation_upper_range=1000,
-                 rescale_lim=(1,-0.15),limits=False,**kwargs):
-                
+                 rescale_lim=(1,-0.15),limits=False,strict=True,**kwargs):
+        self.strict = strict
         self.data = loadFCS(filename,auto_comp=True, transform=None)
-        self.columns=self.data.channels                                      # save columns        
-        self.total_events = self.data.shape[0]
-        self.export_time = self.data.notes['text']['export time']
-        self.cytometer_name = self.data.notes['text']['cyt']
+        self.columns=self.data.channels                                 # save columns because data is redfined after comp
+        self.total_events = self.data.shape[0]      #initial number of events before gating
+        self.export_time = self.data.notes['text']['export time']       # export time stored as a string
+        self.cytometer_name = self.data.notes['text']['cyt']            # 
         self.cytometer_num = self.data.notes['text']['cytnum']
         self.tube_name = self.data.notes['text']['tube name'].replace('New','').strip()
         self.comp_matrix = self._load_comp_matrix(compensation_file)    # load compensation matrix
@@ -78,6 +84,7 @@ class import_FCS_file(object):
         """
         Loads the the spectral overlap library and returns compensation matrix
         """
+        columns = list(self.columns)
         if isinstance(compensation_file,str):
             spectral_overlap_file = compensation_file
         elif isinstance(compensation_file,dict):
@@ -89,13 +96,19 @@ class import_FCS_file(object):
                                  'is not seen in the compensation dictionary')
         else:
             raise TypeError('Provided compensation_file is not of type str or dict')
-        spectral_overlap_library = pd.read_table(spectral_overlap_file,sep='\t',
-                                                 header=0,index_col=0)
-        Undescribed = set(self.columns)-set(spectral_overlap_library.columns)
+        spectral_overlap_library = pd.read_table(spectral_overlap_file,comment='#',sep='\t',
+                                             header=0,index_col=0).dropna(axis=0,how='all')
+        Undescribed = set(columns)-set(spectral_overlap_library.columns)
         if Undescribed:
-            raise IOError('Antigens: '+','.join(Undescribed)+' are not described in the library')
+            if self.strict:
+                raise IOError('Antigens: '+','.join(Undescribed)+' are not described in the library')
+            else:
+                Defaults = ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'FL01', 'FL02', 'FL03',\
+                        'FL04', 'FL05', 'FL06', 'FL07', 'FL08', 'FL09', 'FL10', 'Time']
+                i = columns.index(Undescribed.pop())
+                columns[i] = Defaults[i]
         else:
-            overlap_matrix = spectral_overlap_library[self.columns].values
+            overlap_matrix = spectral_overlap_library[columns].values
             if overlap_matrix.shape[0] != overlap_matrix.shape[1]:
                 raise ValueError('spectral overlap matrix is not square')
             if overlap_matrix.shape[0] != np.trace(overlap_matrix):
