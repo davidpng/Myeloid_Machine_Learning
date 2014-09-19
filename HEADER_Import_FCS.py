@@ -100,20 +100,23 @@ class import_FCS_file(object):
                                              header=0,index_col=0).dropna(axis=0,how='all')
         Undescribed = set(columns)-set(spectral_overlap_library.columns)
         if Undescribed:
-            if self.strict:
+            if self.strict: #if strict == true, then error out with Undescrbied antigens
                 raise IOError('Antigens: '+','.join(Undescribed)+' are not described in the library')
-            else:
+            else:  #try to fix by replacing with defaults (be careful!, these spillovers might not work well)
                 Defaults = ['FSC-A', 'FSC-H', 'SSC-A', 'SSC-H', 'FL01', 'FL02', 'FL03',\
                         'FL04', 'FL05', 'FL06', 'FL07', 'FL08', 'FL09', 'FL10', 'Time']
                 i = columns.index(Undescribed.pop())
                 columns[i] = Defaults[i]
         else:
-            overlap_matrix = spectral_overlap_library[columns].values
-            if overlap_matrix.shape[0] != overlap_matrix.shape[1]:
-                raise ValueError('spectral overlap matrix is not square')
-            if overlap_matrix.shape[0] != np.trace(overlap_matrix):
-                print overlap_matrix
-                raise ValueError('Diagonals of the spectral overlap matrix are not one')
+            pass    # Undescribed is an empty set and we can use columns directly
+        
+        overlap_matrix = spectral_overlap_library[columns].values   #create a matrix from columns
+
+        if overlap_matrix.shape[0] != overlap_matrix.shape[1]:      #check to make sure matrix is invertable
+            raise ValueError('spectral overlap matrix is not square')
+        if overlap_matrix.shape[0] != np.trace(overlap_matrix):
+            print overlap_matrix
+            raise ValueError('Diagonals of the spectral overlap matrix are not one')
             
         return np.linalg.inv(overlap_matrix.T)
     '''

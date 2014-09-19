@@ -15,8 +15,8 @@ Dir = "/home/ngdavid/Desktop/Ubuntu_Dropbox/Myeloid_Data/Myeloid"
 
 File_list = '/home/ngdavid/Desktop/Ubuntu_Dropbox/Myeloid_Data/Myeloid/file_list.txt'
 
-comp_file={'H0152':'/home/ngdavid/Desktop/Ubuntu_Dropbox/Comp_Libs/Spectral_Overlap_Lib_LSRA.txt',
-           '2':'/home/ngdavid/Desktop/Ubuntu_Dropbox/Comp_Libs/Spectral_Overlap_Lib_LSRB.txt'}
+comp_file={'H0152':'/home/ngdavid/Desktop/PYTHON/Myeloid_Machine_Learning/Input_Outputs/Comp_Libs/Spectral_Overlap_Lib_LSRA.txt',
+           '2':'/home/ngdavid/Desktop/PYTHON/Myeloid_Machine_Learning/Input_Outputs/Comp_Libs/Spectral_Overlap_Lib_LSRB.txt'}
 
 parameters = {
     'Myeloid 1': ['FSC-A', 'SSC-H', 'CD15 FITC', 'CD33 PE', 'CD19 PE-TR',
@@ -35,7 +35,7 @@ coords={'singlet': [ (0.01,0.06), (0.60,0.75), (0.93,0.977), (0.988,0.86),
         'viable': [ (0.358,0.174), (0.609,0.241), (0.822,0.132), (0.989,0.298),
                     (1.0,1.0),(0.5,1.0),(0.358,0.174)]}
 
-output_file = '/home/ngdavid/Documents/test_file.hdf5'
+output_file = '/home/ngdavid/Documents/test_file1.hdf5'
 
 
 FCS_Folder = Find_FCS_Files(Dir,File_list,Pattern)
@@ -47,8 +47,8 @@ HDF5_Cases = Bin_2_HDF5_File(output_file)
 
 for case_num,tubes in Cases.items():
     for k in tubes.keys():
-        tube[k] = import_FCS_file(Cases[case_num][k],comp_file,gate_coords=coords,limits=True)
+        tube[k] = import_FCS_file(Cases[case_num][k],comp_file,gate_coords=coords,limits=True,strict=False)
         binning[k] = ND_Binning(tube[k],parameters,bins=10)
     HDF5_Cases.push_case(case_num,tube,binning,ordering = Pattern)
-
+    print('{} has been pushed to {}'.format(case_num,output_file))
 HDF5_Cases.close_case()
