@@ -23,16 +23,17 @@ class import_FCS_file(object):
                  rescale_lim=(1,-0.15),limits=False,**kwargs):
                 
         self.data = loadFCS(filename,auto_comp=True, transform=None)
+        self.columns=self.data.channels                                      # save columns        
         self.total_events = self.data.shape[0]
         self.export_time = self.data.notes['text']['export time']
         self.cytometer_name = self.data.notes['text']['cyt']
         self.cytometer_num = self.data.notes['text']['cytnum']
         self.tube_name = self.data.notes['text']['tube name'].replace('New','').strip()
         self.comp_matrix = self._load_comp_matrix(compensation_file)    # load compensation matrix
-        columns=self.data.channels                                      # save columns
+       
         self.data = np.dot(self.data[:,:],self.comp_matrix)             # apply compensation (returns a numpy array)
         self.data = pd.DataFrame(data=self.data[:,:], \
-                                 columns=columns,
+                                 columns=self.columns,
                                  dtype=np.float32) # create a dataframe with columns
         sat_mask = self._SaturationGate(self.data,saturation_upper_range) # not needed for logicle
         self.data = self.data[sat_mask]                        
@@ -72,7 +73,37 @@ class import_FCS_file(object):
         upper1 = np.all(X_input[mask]<=1,axis=1)
         lower1 = np.all(X_input[mask]>=0,axis=1)
         return upper*lower*upper1*lower1
-        
+
+    def _load_comp_matrix(self,compensation_file):
+        """
+        Loads the the spectral overlap library and returns compensation matrix
+        """
+        if isinstance(compensation_file,str):
+            spectral_overlap_file = compensation_file
+        elif isinstance(compensation_file,dict):
+            if self.cytometer_num in compensation_file.keys():
+                spectral_overlap_file = compensation_file[self.cytometer_num]
+            else:
+                print self.cytometer_num
+                raise ValueError('Cytometer '+ self.cytometer_num + \
+                                 'is not seen in the compensation dictionary')
+        else:
+            raise TypeError('Provided compensation_file is not of type str or dict')
+        spectral_overlap_library = pd.read_table(spectral_overlap_file,sep='\t',
+                                                 header=0,index_col=0)
+        Undescribed = set(self.columns)-set(spectral_overlap_library.columns)
+        if Undescribed:
+            raise IOError('Antigens: '+','.join(Undescribed)+' are not described in the library')
+        else:
+            overlap_matrix = spectral_overlap_library[self.columns].values
+            if overlap_matrix.shape[0] != overlap_matrix.shape[1]:
+                raise ValueError('spectral overlap matrix is not square')
+            if overlap_matrix.shape[0] != np.trace(overlap_matrix):
+                print overlap_matrix
+                raise ValueError('Diagonals of the spectral overlap matrix are not one')
+            
+        return np.linalg.inv(overlap_matrix.T)
+    '''
     def _load_comp_matrix(self,compensation_file):
         """
         Loads the the spectral overlap library and returns compensation matrix
@@ -94,8 +125,9 @@ class import_FCS_file(object):
         except ValueError:
             spectral_overlap_library = pd.read_table(comp_file_name,sep='\t',
                                                 header=0,index_col=0)
+        print spectral_overlap_library
         return np.linalg.inv(spectral_overlap_library.T)
-    
+    '''
     def _SaturationGate(self,X_input,limit,exclude=['Time']):
         """
         Finds values between zero AND greater than 2^18-'limit' 
@@ -244,9 +276,17 @@ if __name__ == "__main__":
                          (0.456,0.379),(0.05,0.0),(0.0,0.0)],
             'viable': [ (0.358,0.174), (0.609,0.241), (0.822,0.132), (0.989,0.298),
                         (1.0,1.0),(0.5,1.0),(0.358,0.174)]}
-    filename='/home/ngdavid/Desktop/Ubuntu_Dropbox/Myeloid_Data/Myeloid/12-00005/12-00005_Myeloid 2.fcs'
-    comp_file='/home/ngdavid/Desktop/Ubuntu_Dropbox/Comp_Libs/M2_Comp_Lib_LSRA.txt'
-    
+    filename='/home/ngdavid/Desktop/Ubuntu_Dropbox/Myeloid_Data/Myeloid/12-00004/12-00004_Myeloid 2.fcs'
+    comp_file={'H0152':'/home/ngdavid/Desktop/Ubuntu_Dropbox/Comp_Libs/Spectral_Overlap_Lib_LSRA.txt',
+               '2':'/home/ngdavid/Desktop/Ubuntu_Dropbox/Comp_Libs/Spectral_Overlap_Lib_LSRB.txt'}
+    #comp_file='/home/ngdavid/Desktop/Ubuntu_Dropbox/Comp_Libs/M1_Comp_Lib_LSRA.txt'
     test = import_FCS_file(filename,comp_file,gate_coords=coords,limits=True)
-    
+    figure()
+    ax=['CD38 A594','CD45 APC-H7']
+    plot(test.data[ax[0]],test.data[ax[1]],'b,')
+    title(test.tube_name)
+    xlim(0,1)
+    ylim(0,1)
+    xlabel(ax[0])
+    ylabel(ax[1])
             
