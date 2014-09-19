@@ -5,6 +5,16 @@ Implements a classs import_FCS_file which will import, comp and scale an FCS fil
 Returns a pandas DataFrame
 @author: ngdavid
 """
+
+__author__ = "David Ng, MD"
+__copyright__ = "Copyright 2014, David Ng"
+__license__ = "GPL"
+__version__ = "1.0"
+__maintainer__ = "David Ng"
+__email__ = "ngdavid@uw.edu"
+__status__ = "Production"
+
+
 import pandas as pd
 import numpy as np
 from scipy.interpolate import interp1d
