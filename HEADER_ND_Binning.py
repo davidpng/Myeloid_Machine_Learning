@@ -4,6 +4,14 @@ Created on Wed Sep 10 13:26:27 2014
 High-D-Binning Function
 @author: ngdavid
 """
+__author__ = "David Ng, MD"
+__copyright__ = "Copyright 2014, David Ng"
+__license__ = "GPL v3"
+__version__ = "0.5"
+__maintainer__ = "David Ng"
+__email__ = "ngdavid@uw.edu"
+__status__ = "Production"
+
 import pandas as pd
 import numpy as np
 import scipy as sp
@@ -29,21 +37,32 @@ class ND_Binning(import_FCS_file):
         self.histogram = self._coord2sparse_histogram().tocsr()
                 
     def _coord2sparse_histogram(self):
+        """
+        generates a sparse matrix with normalized histogram counts
+        each bin describes the fraction of total events within it (i.e. < 1)
+        """
         output=sp.sparse.lil_matrix((1,self.vector_length), dtype=np.float32)
         for i in self.coordinates:
             output[0,i]+=1
         return output/ len(self.coordinates)
          
     def _Uniform_Bin_Data(self,input_data):
-        basis = [1]
+        """
+        fits event parameters to an integer 'binned' value
+        """
+        basis = [1]         #intialize a list of basis values
         for i in self.bins.values:
-            basis.append(i*basis[-1])
-        vector_length = basis.pop() # this is the highest coordinate value
-        basis = pd.Series(data=basis,index = self.bins.index.values)
-        rounded = input_data.copy()
+            basis.append(i*basis[-1])   # basis values will be generated dependent on previous value
+            # ex base-10 basis = [1,10,100,1000]
+            # logic and algorithm from Donald Kunth's Art of Computer Programming Vol 1
+            
+        vector_length = basis.pop()         # this is the highest coordinate value (max length of array)
+        basis = pd.Series(data=basis,index = self.bins.index.values)    
+        rounded = input_data.copy()                 # copy input_data since we will soon operate on it.
         for key in self.bins.index.values:
-            rounded[key] = np.floor(rounded[key]*self.bins[key])
-        output = rounded[self.bins.index.values].dot(basis)
+            rounded[key] = np.floor(rounded[key]*self.bins[key]) # iterate and round over every column 
+        output = rounded[self.bins.index.values].dot(basis) # apply dot product to multiply columns
+                                                            # by basis vector (see Kunth)
         return vector_length, output.apply(np.int64)
         
     def _Generate_Bin_Dict(self,columns,bins):

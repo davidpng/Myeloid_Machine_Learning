@@ -8,10 +8,10 @@ Class to read and manipulate data saved in a HDF5 file by prior program
 __author__ = "David Ng, MD"
 __copyright__ = "Copyright 2014, David Ng"
 __license__ = "GPL v3"
-__version__ = "1.0"
+__version__ = "0.5"
 __maintainer__ = "David Ng"
 __email__ = "ngdavid@uw.edu"
-__status__ = "Production"
+__status__ = "Development"
 
 import h5py
 import pandas as pd
