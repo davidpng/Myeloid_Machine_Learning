@@ -2,8 +2,17 @@
 """
 Created on Tue Sep 16 13:14:35 2014
 HEADER Read_HDF5_Binned_Data
+Class to read and manipulate data saved in a HDF5 file by prior program
 @author: ngdavid
 """
+__author__ = "David Ng, MD"
+__copyright__ = "Copyright 2014, David Ng"
+__license__ = "GPL v3"
+__version__ = "1.0"
+__maintainer__ = "David Ng"
+__email__ = "ngdavid@uw.edu"
+__status__ = "Production"
+
 import h5py
 import pandas as pd
 import numpy as np
@@ -24,8 +33,7 @@ class Manipulated_Binned_HDF5(object):
         
     def List_Cases(self):
         return [str(x) for x in self.hd5f_object['/tube'].keys()]
-    
-    
+        
     def Return_Coordinates(self,case,coord):
         """
         Returns the bin parameters and the tube
@@ -58,24 +66,59 @@ class Manipulated_Binned_HDF5(object):
         """returns CSR matrix"""
         return matrix.multiply(matrix > fraction)
         
-    def Return_CSR_Matrix(self,cases):
+    def _Return_CSR_Matrix(self,cases):
         """returns CSR matrix for a case or list of cases"""
         if isinstance(cases,str):
             cases = [cases]
         if isinstance(cases,list):
             matrix_list=[]
-            for case in cases:
+        else:
+            raise IOError('Cases is not of a proper type')
+            
+        for case in cases:
+            data = self.hd5f_object['/data'][case]['data']
+            indices = self.hd5f_object['/data'][case]['indices']
+            indptr = self.hd5f_object['/data'][case]['indptr']
+            shape = self.hd5f_object['/data'][case]['shape']
+            matrix_list.append(sp.csr_matrix((data,indices,indptr),shape = shape))
+        return sp.vstack(matrix_list)
+        
+    def _Return_LIL_Matrix(self,cases):
+        """returns LIL matrix for a case or list of cases"""
+        if isinstance(cases,str):
+            cases = [cases]
+        elif isinstance(cases,list):
+            matrix_list=[]
+        else:
+            raise IOError('Cases is not of a proper type')
+ 
+        for case in cases:
                 data = self.hd5f_object['/data'][case]['data']
                 indices = self.hd5f_object['/data'][case]['indices']
                 indptr = self.hd5f_object['/data'][case]['indptr']
                 shape = self.hd5f_object['/data'][case]['shape']
                 matrix_list.append(sp.csr_matrix((data,indices,indptr),shape = shape))
-            return sp.vstack(matrix_list)
-        else:
-            raise IOError('Cases is not of a proper type')
-    
-    def Return_Dense_Matrix(self,matrix,columns):
-        pass
+        return sp.vstack(matrix_list).tolil()
+            
+    def Return_Dense_Matrix(self,cases,columns):
+        """
+        Returns a dense pandas dataframe given columns and cases
+        """
+        dense_array = Cases._Return_LIL_Matrix(cases)[:,columns].todense()
+        return pd.DataFrame(data = dense_array,index = cases, columns = columns)
+        #return Cases._Return_LIL_Matrix(cases)[:,columns].todense()
+
+    def Filter_by_Variance(self,cases,columns,**kwargs):
+        """
+        Filters columns by Variance using a cutoff or fraction
+        """
+        if kwargs.has_key('cutoff'):
+            t=self.Return_Dense_Matrix(cases,columns)
+            mask = t.var(axis=0) > kwargs['cutoff']
+            return t.icol(np.where(mask)[0])
+        elif kwargs.has_key('fraction'):
+            print "not implemented yet"
+            return None
     def Close_Case(self):
         self.hd5f_object.close()
         
@@ -86,3 +129,7 @@ if __name__ == "__main__":
     k=Cases.hd5f_object['data'].keys()
     for k in Cases.hd5f_object['data'].keys():
         print Cases.hd5f_object['data'][k]['data']
+    #t1=Cases.Return_Dense_Matrix(Cases.List_Cases(),union)
+    #t2 = Cases.Return_CSR_Matrix(Cases.List_Cases())
+    t1=Cases.Filter_by_Variance(Cases.List_Cases(),union,cutoff=10e-13)
+    print t1

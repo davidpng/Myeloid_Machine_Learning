@@ -7,7 +7,7 @@ import shutil
 
 __author__ = "David Ng, MD"
 __copyright__ = "Copyright 2014, David Ng"
-__license__ = "GPL"
+__license__ = "GPL v3"
 __version__ = "1.0"
 __maintainer__ = "David Ng"
 __email__ = "ngdavid@uw.edu"
