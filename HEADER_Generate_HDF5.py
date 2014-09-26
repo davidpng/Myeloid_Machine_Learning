@@ -10,15 +10,22 @@ import numpy as np
 import scipy as sp
 
 class Bin_2_HDF5_File(object):
-    def __init__(self,filename):
+    def __init__(self,filename,overwrite=True):
         self.__tube_nums=0        
         self.filename=filename
-        self.hdf5_file = h5py.File(filename,mode='w')
-
+        if overwrite:
+            hdf5_file = h5py.File(filename,mode='w')
+            hdf5_file.close()
+        
     def push_case(self,case_name,tubes,binnings,saveFCS=False,**kwargs):
         """
         Takes classes tubes and binnings
         """
+        if kwargs.has_key('mode'):
+            hdf5_file = h5py.File(self.filename,mode=kwargs['mode'])
+        else:
+            hdf5_file = h5py.File(self.filename,mode='a')
+
         if len(tubes) != len(binnings):
             raise IOError('number of tubes and binnings do not match')
         else:
@@ -33,7 +40,7 @@ class Bin_2_HDF5_File(object):
         self.coords = coords
         
         for i in self.ordering:
-            tube_info = self.hdf5_file.create_group('/tube/'+case_name+'/'+str(i))
+            tube_info = hdf5_file.create_group('/tube/'+case_name+'/'+str(i))
             tube_info.create_dataset('tube_name',data = tubes[i].tube_name)
             tube_info.create_dataset('antigens',data=binnings[i].columns)
             tube_info.create_dataset('bins',data=binnings[i].bins.values)
@@ -48,19 +55,20 @@ class Bin_2_HDF5_File(object):
                 tube_info.create_dataset('gates/'+k,data = np.array(v))
             if saveFCS:
                 tube_info.create_dataset('listmode_data',data=tubes[i].data.values)
-        case = self.hdf5_file.create_group('/data/'+case_name)
-        #data_to_write = self._concatentate_csr_array([binnings[i].histogram for i in self.ordering],format='csr')
+        case = hdf5_file.create_group('/data/'+case_name)
+        
         data_to_write = sp.sparse.hstack([binnings[i].histogram for i in self.ordering],format='csr')
         case.create_dataset('data', data = data_to_write.data)
         case.create_dataset('indices', data = data_to_write.indices)
         case.create_dataset('indptr', data = data_to_write.indptr)
         case.create_dataset('shape',data = data_to_write.shape)
-        self.hdf5_file.flush()
+        hdf5_file.flush()
+        hdf5_file.close()
         return data_to_write
         
     def close_case(self):
         self.hdf5_file.close()
-        
+
     def _ordering_match_pattern(self,keys,pattern):
         """
         internal function that generates an ordered list of keys based on a passed pattern
