@@ -14,7 +14,7 @@ __maintainer__ = "David Ng"
 __email__ = "ngdavid@uw.edu"
 __status__ = "Production"
 
-
+import re
 import pandas as pd
 import numpy as np
 from scipy.interpolate import interp1d
@@ -39,14 +39,14 @@ class import_FCS_file(object):
                  rescale_lim=(1,-0.15),limits=False,strict=True,**kwargs):
         self.strict = strict
         self.data = loadFCS(filename,auto_comp=True, transform=None)
-        self.columns=self.data.channels                                 # save columns because data is redfined after comp
+        self.columns=self._Clean_up_columns(self.data.channels)         # save columns because data is redfined after comp
         self.total_events = self.data.shape[0]      #initial number of events before gating
         self.export_time = self.data.notes['text']['export time']       # export time stored as a string
         self.cytometer_name = self.data.notes['text']['cyt']            # 
         self.cytometer_num = self.data.notes['text']['cytnum']
-        self.tube_name = self.data.notes['text']['tube name'].replace('New','').strip()
-        self.comp_matrix = self._load_comp_matrix(compensation_file)    # load compensation matrix
-       
+        pattern = re.compile("new", re.IGNORECASE)
+        self.tube_name = pattern.sub("",self.data.notes['text']['tube name']).strip()
+        self.comp_matrix = self._load_comp_matrix(compensation_file)    # load compensation matrix       
         self.data = np.dot(self.data[:,:],self.comp_matrix)             # apply compensation (returns a numpy array)
         self.data = pd.DataFrame(data=self.data[:,:], \
                                  columns=self.columns,
@@ -73,6 +73,13 @@ class import_FCS_file(object):
             self.coords = None
             
         self.gated_events = self.data.shape[0]
+        
+    def _Clean_up_columns(self,columns):
+        """
+        Provides error handling and clean up for manually entered parameter names
+        """
+        output = [c.replace('CD ','CD') for c in columns]
+        return output
         
     def _Rescale(self,X_input,high=1,low=-0.15,exclude=['FSC-A','FSC-H','SSC-A','SSC-H','Time']):
         mask = [x for x in X_input.columns.values if x not in exclude]
@@ -127,8 +134,12 @@ class import_FCS_file(object):
         if overlap_matrix.shape[0] != np.trace(overlap_matrix):
             print overlap_matrix
             raise ValueError('Diagonals of the spectral overlap matrix are not one')
-            
-        return np.linalg.inv(overlap_matrix.T)
+        
+        if not np.isfinite(np.linalg.cond(overlap_matrix.T)):
+            print overlap_matrix.T
+            raise ValueError('matrix is not invertable')
+        else:
+            return np.linalg.inv(overlap_matrix.T)
     '''
     def _load_comp_matrix(self,compensation_file):
         """

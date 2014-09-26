@@ -15,7 +15,7 @@ class Bin_2_HDF5_File(object):
         self.filename=filename
         self.hdf5_file = h5py.File(filename,mode='w')
 
-    def push_case(self,case_name,tubes,binnings,**kwargs):
+    def push_case(self,case_name,tubes,binnings,saveFCS=False,**kwargs):
         """
         Takes classes tubes and binnings
         """
@@ -46,7 +46,8 @@ class Bin_2_HDF5_File(object):
             tube_info.create_dataset('binning_length', data = binnings[i].vector_length)
             for k,v in tubes[i].coords.items():     # go through the dict of gates
                 tube_info.create_dataset('gates/'+k,data = np.array(v))
-
+            if saveFCS:
+                tube_info.create_dataset('listmode_data',data=tubes[i].data.values)
         case = self.hdf5_file.create_group('/data/'+case_name)
         #data_to_write = self._concatentate_csr_array([binnings[i].histogram for i in self.ordering],format='csr')
         data_to_write = sp.sparse.hstack([binnings[i].histogram for i in self.ordering],format='csr')
