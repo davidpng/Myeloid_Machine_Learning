@@ -18,7 +18,7 @@ import re
 import pandas as pd
 import numpy as np
 from scipy.interpolate import interp1d
-from fcm import loadFCS
+from HEADER_loadFCS import loadFCS
 from matplotlib.path import Path
 
 class import_FCS_file(object):
@@ -38,16 +38,16 @@ class import_FCS_file(object):
     def __init__(self,filename,compensation_file,saturation_upper_range=1000,
                  rescale_lim=(1,-0.15),limits=False,strict=True,**kwargs):
         self.strict = strict
-        self.data = loadFCS(filename,auto_comp=True, transform=None)
-        self.columns=self._Clean_up_columns(self.data.channels)         # save columns because data is redfined after comp
-        self.total_events = self.data.shape[0]      #initial number of events before gating
-        self.export_time = self.data.notes['text']['export time']       # export time stored as a string
-        self.cytometer_name = self.data.notes['text']['cyt']            # 
-        self.cytometer_num = self.data.notes['text']['cytnum']
+        self.FCS = loadFCS(filename,import_dataframe = False)
+        self.columns=self._Clean_up_columns(self.FCS.channels)         # save columns because data is redfined after comp
+        self.total_events = self.FCS.data.shape[0]      #initial number of events before gating
+        self.export_time = self.FCS.text['export time']       # export time stored as a string
+        self.cytometer_name = self.FCS.text['cyt']            # 
+        self.cytometer_num = self.FCS.text['cytnum']
         pattern = re.compile("new", re.IGNORECASE)
-        self.tube_name = pattern.sub("",self.data.notes['text']['tube name']).strip()
+        self.tube_name = pattern.sub("",self.FCS.text['tube name']).strip()
         self.comp_matrix = self._load_comp_matrix(compensation_file)    # load compensation matrix       
-        self.data = np.dot(self.data[:,:],self.comp_matrix)             # apply compensation (returns a numpy array)
+        self.data = np.dot(self.FCS.data,self.comp_matrix)             # apply compensation (returns a numpy array)
         self.data = pd.DataFrame(data=self.data[:,:], \
                                  columns=self.columns,
                                  dtype=np.float32) # create a dataframe with columns

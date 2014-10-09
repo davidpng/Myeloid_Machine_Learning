@@ -1,7 +1,8 @@
 # -*- coding: utf-8 -*-
 """
 Created on Wed Sep 10 12:15:34 2014
-
+Command line file to be accessed via Main.py
+n.b. this is done to solve a memory leak inherant import_FCS_file.  Perhaps there is a leak in loadFCS?
 @author: ngdavid
 """
 from HEADER_Import_FCS import import_FCS_file

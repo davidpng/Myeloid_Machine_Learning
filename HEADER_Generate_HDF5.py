@@ -66,8 +66,6 @@ class Bin_2_HDF5_File(object):
         hdf5_file.close()
         return data_to_write
         
-    def close_case(self):
-        self.hdf5_file.close()
 
     def _ordering_match_pattern(self,keys,pattern):
         """

@@ -32,4 +32,4 @@ coords={'singlet': [ (0.01,0.06), (0.60,0.75), (0.93,0.977), (0.988,0.86),
         'viable': [ (0.358,0.174), (0.609,0.241), (0.822,0.132), (0.989,0.298),
                     (1.0,1.0),(0.5,1.0),(0.358,0.174)]}
 
-output_file = '/home/ngdavid/Documents/16_cases_temp1.hdf5'
+output_file = '/home/ngdavid/Documents/16_cases_temp.hdf5'
